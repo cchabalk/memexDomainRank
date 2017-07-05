@@ -12,6 +12,6 @@ This effort is split into 3 major milestones:
  **Collect and Count** (coming soon)
  The collect and count portion imports the links parsed previously and aggragates them.
  
- **Compute Metrics**
+ **Compute Metrics** (coming soon)
  Sites of interest can be identified based on the ratio of in-links to out-links, pagerank, etc.  Metrics are computed and exported for each site.  Finally, the sites can be sorted by their metrics to yield a ranked list of sites which are then appropriate for human vetting.
  
