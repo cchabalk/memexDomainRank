@@ -97,8 +97,17 @@ def createDictionaries(fileName):
             #good
             #maybe do something with forward reverse
         else:
-            nameValueDict[pURL]=nameValueMeta[currentKey]
-            nameValueMeta[currentKey] +=1
+            nameValueDict[pURL]=nameValueMeta['currentKey']
+            nameValueMeta['currentKey'] +=1
+
+        for childURL in data[pURL]:
+            if childURL in nameValueDict.keys():
+                pass
+                # good
+                # maybe do something with forward reverse
+            else:
+                nameValueDict[childURL] = nameValueMeta['currentKey']
+                nameValueMeta['currentKey'] += 1
 
 
 
@@ -108,7 +117,11 @@ def createDictionaries(fileName):
 
 
 
-    #        if (len(pURL) > 1):
+
+
+
+
+                #        if (len(pURL) > 1):
     #            targetDict = linksDict.get(pURL, {})
     #            for link in data['childLinks']:
     #                targetDict[link] = targetDict.get(link, 0) + 1
@@ -134,8 +147,11 @@ def createDictionaries(fileName):
 
 if __name__=='__main__':
 
+    nameValueDict = {}
+    nameValueMeta = {}
 
-    inDir = '/media/user1/Seagate Backup Plus Drive/memexGithub/data/type2/counted/'
+
+    inDir = './data/type2/counted/'
     inDir = normpath(inDir)
 
     #get list of processed files
