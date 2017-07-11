@@ -185,6 +185,7 @@ def doTheWork(input):
 
     linksDict = {}
     fileName = input[0]
+    # fileName = input
     with gzip.open(fileName) as fp:
 
         linesCount = 0
@@ -213,7 +214,7 @@ def doTheWork(input):
     tStop = time.time()
     eTime = tStop - tStart
     linesPerSec = linesCount / eTime
-    print "lines parsed: ", linesCount, "files to go:", filesCount, "took ", eTime, "; ", linesPerSec, "l/s"
+    # print "lines parsed: ", linesCount, "files to go:", filesCount, "took ", eTime, "; ", linesPerSec, "l/s"
     writeDictToCsv(fileName, linksDict)  ##needs work here
 
     linksDict.clear()
@@ -278,14 +279,8 @@ def writeFailedLog(logFilePath,failedFileName):
         fp.write(failedFileName + '\n')
 
 
-
-
-
-
-
-if __name__=='__main__':
-
-    #note:  There is a memory issue, not a "memory leak"
+def runPipeLine():
+    # note:  There is a memory issue, not a "memory leak"
     #If a large dictionary is created ~4GB+, memory is consumed by the object
     #However, when the object goes out of scope, or if it is = None
     #The memory is not returned
@@ -295,38 +290,55 @@ if __name__=='__main__':
     #The code below does not actually do anything in parallel, but it uses the multiprocessing
     #pool to ensure the processing thread is eliminated and memory is returned
 
-    inDir = '/media/user1/Seagate Backup Plus Drive/memexGithub/data/type2'
+    inDir = '../memexGithub/data/type2'
     inDir = normpath(inDir)
 
     #get list of processed files
     logSuccess = normpath(inDir + normpath('/processedFiles.txt'))
     logFailed = normpath(inDir + normpath('/failedFiles.txt'))
     rawFiles = getFilesInDirectory(inDir)
+    for element in rawFiles:
+        if ".DS_Store" in element:
+            rawFiles.remove(element)
 
     processedFiles = getProcessedFiles(logSuccess)
     processedFiles += getProcessedFiles(logFailed)
 
     filesCount = len(rawFiles)
 
+    # print rawFiles
+    # print logSuccess
+    # print logFailed
+    # print filesCount
+    print processedFiles
     for file in rawFiles:
         if file not in processedFiles:
             # do the processing here
             start = time.clock()
             print "processing " + file
-            try:
-                pool = Pool(processes=1)
-                input = (file,)
-                pool.map(doTheWork, (input,))
-                pool.close()
-                pool.join()
-                gc.collect()
-                eTime = time.clock() - start
-                print str(eTime) + ' sec'
 
-                # logging
-                print 'logging ', file
-                writeLogFile(logSuccess, file)
-                time.sleep(0.1)
-            except:
-                print 'failed; ', file
-                writeFailedLog(logFailed, file)
+            # input = (file,)
+            # print input
+            # doTheWork(input)
+            # try:
+            pool = Pool(processes=1)
+            input = (file,)
+            # input = file
+            pool.map(doTheWork, (input,))
+            pool.close()
+            pool.join()
+            gc.collect()
+            eTime = time.clock() - start
+            print str(eTime) + ' sec'
+            # doTheWork((input,))
+            # logging
+            print 'logging ', file
+            writeLogFile(logSuccess, file)
+            time.sleep(0.1)
+            # except:
+            #     print 'failed; ', file
+            #     writeFailedLog(logFailed, file)
+
+
+if __name__ == '__main__':
+    runPipeLine()

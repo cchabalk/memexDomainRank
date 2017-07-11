@@ -1,0 +1,6 @@
+processing ../memexGithub/data/type2/counted/hg_0a813cf5effc_items_deduped.jl.gz
+36.717073 sec
+logging  ../memexGithub/data/type2/counted/hg_0a813cf5effc_items_deduped.jl.gz
+processing ../memexGithub/data/type2/counted/jpl-crawl-fact-combined-19514-ac.jsonl.gz
+7.118794 sec
+logging  ../memexGithub/data/type2/counted/jpl-crawl-fact-combined-19514-ac.jsonl.gz
