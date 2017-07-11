@@ -139,19 +139,12 @@ def createDictionaries(fileName):
     #gc.collect()  #this does not apperar to work; it was included to attempt to free memory
     #print 'done gc'
 
-
-
-
-
-
-
-if __name__=='__main__':
-
+def runPipeLine():
     nameValueDict = {}
     nameValueMeta = {}
 
 
-    inDir = './data/type2/counted/'
+    inDir = '../memexGithub/data/type2/counted/'
     inDir = normpath(inDir)
 
     #get list of processed files
@@ -182,7 +175,5 @@ if __name__=='__main__':
                 print 'failed; ', file
                 #writeFailedLog(logFailed, file)
 
-
-
-
-
+if __name__=='__main__':
+    runPipeLine()

@@ -16,6 +16,8 @@ from os import listdir
 from os.path import isfile, join, normpath
 import sys
 
+from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog
+
 debug = False
 
 def parseLinksLXML(inString):
@@ -64,43 +66,43 @@ def parseListLinks(inJSON):
     return outJSON
 
 
-def getFilesInDirectory(inDir):
-    inDir = normpath(inDir)
-    onlyFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)))]
-    return onlyFiles
+# def getFilesInDirectory(inDir):
+#     inDir = normpath(inDir)
+#     onlyFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)))]
+#     return onlyFiles
 
-def getProcessedFiles(inFile):
-    inFile = normpath(inFile)
-    processedFiles = []
-    try:
-        with open(inFile) as fp:
-            #processedFiles = fp.readlines()
-            processedFiles = fp.read().splitlines()
-    except:
-        processedFiles = []
-    return processedFiles
+# def getProcessedFiles(inFile):
+#     inFile = normpath(inFile)
+#     processedFiles = []
+#     try:
+#         with open(inFile) as fp:
+#             #processedFiles = fp.readlines()
+#             processedFiles = fp.read().splitlines()
+#     except:
+#         processedFiles = []
+#     return processedFiles
 
-def writeLogFile(logFilePath,processedFileName):
-    logFilePath = normpath(logFilePath)
-    processedFileName = normpath(processedFileName)
-    if os.path.isfile(logFilePath) == False:
-        with open(logFilePath,'w+') as fp: #create the log file
-            pass
+# def writeLogFile(logFilePath,processedFileName):
+#     logFilePath = normpath(logFilePath)
+#     processedFileName = normpath(processedFileName)
+#     if os.path.isfile(logFilePath) == False:
+#         with open(logFilePath,'w+') as fp: #create the log file
+#             pass
 
-    with open(logFilePath,'a+') as fp:
-        fp.write(processedFileName + '\n')
+#     with open(logFilePath,'a+') as fp:
+#         fp.write(processedFileName + '\n')
 
 
 
-def writeFailedLog(logFilePath,failedFileName):
-    logFilePath = normpath(logFilePath)
-    failedFileName = normpath(failedFileName)
-    if os.path.isfile(logFilePath) == False:
-        with open(logFilePath,'w+') as fp: #create the log file
-            pass
+# def writeFailedLog(logFilePath,failedFileName):
+#     logFilePath = normpath(logFilePath)
+#     failedFileName = normpath(failedFileName)
+#     if os.path.isfile(logFilePath) == False:
+#         with open(logFilePath,'w+') as fp: #create the log file
+#             pass
 
-    with open(logFilePath,'a+') as fp:
-        fp.write(failedFileName + '\n')
+#     with open(logFilePath,'a+') as fp:
+#         fp.write(failedFileName + '\n')
 
 
 def parseLinksFromFile(inFile):
@@ -378,19 +380,29 @@ def writeFileFirstTime(inFile):
 
 
 
-def runPipeLine():
+def runPipeLine(baseDir):
 
-    #get list of unprocessed files
-    rawFileDir = '../memexGithub/data/'
+    # #get list of unprocessed files
+    # rawFileDir = '../memexGithub/data/'
 
-    #get list of processed type3 files - the last ones written
-    logSuccess = '../memexGithub/processedFiles.txt'
-    logFailed = '../memexGithub/failedFiles.txt'
-    rawFiles = getFilesInDirectory(rawFileDir)
+    # #get list of processed type3 files - the last ones written
+    # logSuccess = '../memexGithub/processedFiles.txt'
+    # logFailed = '../memexGithub/failedFiles.txt'
+    # rawFiles = getFilesInDirectory(rawFileDir)
 
+    # processedFiles = getProcessedFiles(logSuccess)
+    # processedFiles += getProcessedFiles(logFailed)
+
+    # All work is stored in the type2 subfolder of the main data folder
+    baseDirAbs = cleanPath(baseDir)
+    
+    # Get the list of files to process
+    rawFiles = getFilesInDirectory(baseDirAbs)
+
+    # Get list of files that have already been processed 
+    logSuccess, logFailed = getLogFilePaths(baseDirAbs, "Parse")
     processedFiles = getProcessedFiles(logSuccess)
     processedFiles += getProcessedFiles(logFailed)
-
 
     for file in rawFiles:
         if file not in processedFiles:
@@ -399,7 +411,7 @@ def runPipeLine():
             print "processing " + file
 #            file = 'hg_try_5_3438c921200e_items_deduped.jl.gz'
             try:
-                parseLinksFromFile(normpath(os.path.join(rawFileDir,file)))
+                parseLinksFromFile(normpath(os.path.join(baseDirAbs,file)))
                 eTime = time.clock()-start
                 print str(eTime) + ' sec'
 
@@ -468,5 +480,8 @@ def runPipeLine():
 # #286 lines per second - parallel
 #
 #
+
+# This only needs to be set when running the script individually
+baseDirStandalone = "../memexGithub/data/"
 if __name__ == '__main__':
-    runPipeLine()
+    runPipeLine(baseDirStandalone)
