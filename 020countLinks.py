@@ -10,6 +10,8 @@ import gc
 from multiprocessing import Pool
 import signal
 
+from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog
+
 def getGzFilesInDirectory(inDir):
     inDir = normpath(inDir)
     onlyFiles = [join(inDir, f) for f in listdir(inDir) if (isfile(join(inDir, f)) and ((f[-1] == 'z')))]
@@ -230,56 +232,78 @@ def doTheWork(input):
 ##my additions
 
 
-def getFilesInDirectory(inDir):
-    inDir = normpath(inDir)
-    onlyFilesTemp = [normpath(os.path.join(inDir, f)) for f in listdir(inDir) if (isfile(join(inDir, f)))]
-
-    onlyFiles = []
-    #do not return log files
-    for line in onlyFilesTemp:
-        try:
-            if (line[-3:] != 'txt'):
-                onlyFiles.append(line)
-        except:
-            pass
-
-    return onlyFiles
-
-def getProcessedFiles(inFile):
-    inFile = normpath(inFile)
-    processedFiles = []
-    try:
-        with open(inFile) as fp:
-            #processedFiles = fp.readlines()
-            processedFiles = fp.read().splitlines()
-    except:
-        processedFiles = []
-    return processedFiles
-
-def writeLogFile(logFilePath,processedFileName):
-    logFilePath = normpath(logFilePath)
-    processedFileName = normpath(processedFileName)
-    if os.path.isfile(logFilePath) == False:
-        with open(logFilePath,'w+') as fp: #create the log file
-            pass
-
-    with open(logFilePath,'a+') as fp:
-        fp.write(processedFileName + '\n')
 
 
 
-def writeFailedLog(logFilePath,failedFileName):
-    logFilePath = normpath(logFilePath)
-    failedFileName = normpath(failedFileName)
-    if os.path.isfile(logFilePath) == False:
-        with open(logFilePath,'w+') as fp: #create the log file
-            pass
-
-    with open(logFilePath,'a+') as fp:
-        fp.write(failedFileName + '\n')
 
 
-def runPipeLine():
+
+# def cleanPath(inPath):
+#     outPath = normpath(inPath)
+#     outPath = os.path.abspath(outPath)
+#     return outPath
+
+# def getLogFilePaths(inPath, textModifier):
+#     logSuccessFile = '/processedFiles' + textModifier + ".txt"
+#     logFailFile = 'failedFiles' + textModifier + ".txt"
+
+#     logSuccess = cleanPath(inPath + normpath(logSuccessFile))
+#     logFailed = cleanPath(inPath + normpath(logFailFile))
+
+#     return logSuccess, logFailed
+
+# def getFilesInDirectory(inDir):
+#     inDir = normpath(inDir)
+#     onlyFilesTemp = [normpath(os.path.join(inDir, f)) for f in listdir(inDir) if (isfile(join(inDir, f)))]
+
+#     onlyFiles = []
+#     #do not return log files
+#     for line in onlyFilesTemp:
+#         try:
+#             if (line[-3:] != 'txt'):
+#                 onlyFiles.append(line)
+#         except:
+#             pass
+
+#     # If using on MacOS, .DS_Store is often created by the system and should be ignored
+#     for element in onlyFiles:
+#         if ".DS_Store" in element:
+#             onlyFiles.remove(element)
+
+#     return onlyFiles
+
+# def getProcessedFiles(inFile):
+#     inFile = normpath(inFile)
+#     processedFiles = []
+#     try:
+#         with open(inFile) as fp:
+#             #processedFiles = fp.readlines()
+#             processedFiles = fp.read().splitlines()
+#     except:
+#         processedFiles = []
+#     return processedFiles
+
+# def writeLogFile(logFilePath,processedFileName):
+#     logFilePath = normpath(logFilePath)
+#     processedFileName = normpath(processedFileName)
+#     if os.path.isfile(logFilePath) == False:
+#         with open(logFilePath,'w+') as fp: #create the log file
+#             pass
+
+#     with open(logFilePath,'a+') as fp:
+#         fp.write(processedFileName + '\n')
+
+# def writeFailedLog(logFilePath,failedFileName):
+#     logFilePath = normpath(logFilePath)
+#     failedFileName = normpath(failedFileName)
+#     if os.path.isfile(logFilePath) == False:
+#         with open(logFilePath,'w+') as fp: #create the log file
+#             pass
+
+#     with open(logFilePath,'a+') as fp:
+#         fp.write(failedFileName + '\n')
+
+def runPipeLine(baseDir):
     # note:  There is a memory issue, not a "memory leak"
     #If a large dictionary is created ~4GB+, memory is consumed by the object
     #However, when the object goes out of scope, or if it is = None
@@ -290,27 +314,19 @@ def runPipeLine():
     #The code below does not actually do anything in parallel, but it uses the multiprocessing
     #pool to ensure the processing thread is eliminated and memory is returned
 
-    inDir = '../memexGithub/data/type2'
-    inDir = normpath(inDir)
+    # All work is stored in the type2 subfolder of the main data folder
+    baseDirAbs = cleanPath(baseDir + '/type2')
+    
+    # Get the list of files to process
+    rawFiles = getFilesInDirectory(baseDirAbs)
 
-    #get list of processed files
-    logSuccess = normpath(inDir + normpath('/processedFiles.txt'))
-    logFailed = normpath(inDir + normpath('/failedFiles.txt'))
-    rawFiles = getFilesInDirectory(inDir)
-    for element in rawFiles:
-        if ".DS_Store" in element:
-            rawFiles.remove(element)
-
+    # Get list of files that have already been processed 
+    logSuccess, logFailed = getLogFilePaths(baseDirAbs, "Count")
     processedFiles = getProcessedFiles(logSuccess)
     processedFiles += getProcessedFiles(logFailed)
 
     filesCount = len(rawFiles)
 
-    # print rawFiles
-    # print logSuccess
-    # print logFailed
-    # print filesCount
-    print processedFiles
     for file in rawFiles:
         if file not in processedFiles:
             # do the processing here
@@ -320,25 +336,26 @@ def runPipeLine():
             # input = (file,)
             # print input
             # doTheWork(input)
-            # try:
-            pool = Pool(processes=1)
-            input = (file,)
-            # input = file
-            pool.map(doTheWork, (input,))
-            pool.close()
-            pool.join()
-            gc.collect()
-            eTime = time.clock() - start
-            print str(eTime) + ' sec'
-            # doTheWork((input,))
-            # logging
-            print 'logging ', file
-            writeLogFile(logSuccess, file)
-            time.sleep(0.1)
-            # except:
-            #     print 'failed; ', file
-            #     writeFailedLog(logFailed, file)
+            try:
+                pool = Pool(processes=1)
+                input = (file,)
+                # input = file
+                pool.map(doTheWork, (input,))
+                pool.close()
+                pool.join()
+                gc.collect()
+                eTime = time.clock() - start
+                print str(eTime) + ' sec'
+                # doTheWork((input,))
+                # logging
+                print 'logging ', file
+                writeLogFile(logSuccess, file)
+                time.sleep(0.1)
+            except:
+                print 'failed; ', file
+                writeFailedLog(logFailed, file)
 
-
+# This only needs to be set when running the script individually
+baseDirStandalone = "../memexGithub/data/"
 if __name__ == '__main__':
-    runPipeLine()
+    runPipeLine(baseDirStandalone)
