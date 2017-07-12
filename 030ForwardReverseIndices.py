@@ -8,20 +8,6 @@ import time
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def getFilesInDirectory(inDir):
     inDir = normpath(inDir)
     onlyFilesTemp = [normpath(os.path.join(inDir, f)) for f in listdir(inDir) if (isfile(join(inDir, f)))]
@@ -75,11 +61,9 @@ def ensure_dir(file_path):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def createDictionaries(fileName):
-    linksDict = {}
+def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnectivity, nodeMetrics):
     linesCount = 0
-    nameValueDict = {} #this must persist through function calls
-    nameValueMeta={'currentKey':0}
+    localNameValue = set()
     with gzip.open(fileName) as fp:
         #The file is only 1 line
         tStart = time.time()
@@ -87,64 +71,63 @@ def createDictionaries(fileName):
 
     data = ujson.loads(line)
 
-    kTemp = data.keys()
-    for pURL in kTemp:
+    #get a set of keys
+    parentKeys = data.keys()
 
-        linesCount += 1
+    for parentURL in parentKeys:
+        localNameValue.add(parentURL)
+        for childURL in data[parentURL]:
+            localNameValue.add(childURL)
 
-        if pURL in nameValueDict.keys():
-            pass
-            #good
-            #maybe do something with forward reverse
-        else:
-            nameValueDict[pURL]=nameValueMeta['currentKey']
-            nameValueMeta['currentKey'] +=1
+    #get set of items in local but not in global
+    #grabbed from: https://stackoverflow.com/questions/3462143/get-difference-between-two-lists
+    s = set(globalNameValue)
+    extraElements = [x for x in localNameValue if x not in s]
 
-        for childURL in data[pURL]:
-            if childURL in nameValueDict.keys():
-                pass
-                # good
-                # maybe do something with forward reverse
-            else:
-                nameValueDict[childURL] = nameValueMeta['currentKey']
-                nameValueMeta['currentKey'] += 1
+    #get the current length of the global dict; before adding elements
+    currentGlobalLength = len(globalNameValue)
+
+    #add items to globalNameValue list
+    globalNameValue+=extraElements
+
+    #now we have a name/value table
+    #generate reverse lookup table
+    for item in extraElements:
+        globalNameReverse[item] = currentGlobalLength
+        currentGlobalLength += 1  #increase number and go
+
+    #given a site index # we get the name from globalNameValue[index #] = name
+    #given a site name we get the index number from globalNameReverse[name] = index #
+
+    #make global node connectivity table
+    for item in parentKeys:
+        #indexNo = globalNameReverse[item]  #get the index number - may not use this
+        globalNodeDict = nodeConnectivity.get(item,{})
+        localChildDict = data[item]
+
+        for child in localChildDict.keys():
+            #newValue             = existing value (or 0)       + incremental value
+            globalNodeDict[child] = globalNodeDict.get(child,0) + localChildDict[child]
+
+        #update the child count dict in the global node dict
+        nodeConnectivity[item] = globalNodeDict
 
 
 
 
 
 
-
-
-
-
-
-
-
-                #        if (len(pURL) > 1):
-    #            targetDict = linksDict.get(pURL, {})
-    #            for link in data['childLinks']:
-    #                targetDict[link] = targetDict.get(link, 0) + 1
-    #            linksDict[pURL] = targetDict
-    #            if linesCount % 100000 == 0:
-    #                print linesCount,
-    #                pass
-    #tStop = time.time()
-    #eTime = tStop - tStart
-    #linesPerSec = linesCount / eTime
-    #print "lines parsed: ", linesCount, "files to go:", filesCount, "took ", eTime, "; ", linesPerSec, "l/s"
-    #writeDictToCsv(fileName, linksDict)  ##needs work here
-
-    #linksDict.clear()
-    #gc.collect()  #this does not apperar to work; it was included to attempt to free memory
-    #print 'done gc'
+    print len(globalNameValue)
+    print len(globalNameReverse.keys())
+    print len(nodeConnectivity.keys())
+    return (globalNameValue,globalNameReverse,nodeConnectivity)
 
 def runPipeLine():
     nameValueDict = {}
     nameValueMeta = {}
 
 
-    inDir = '../memexGithub/data/type2/counted/'
+    inDir = '../memexDomainRank/data/type2/counted/'
     inDir = normpath(inDir)
 
     #get list of processed files
@@ -156,6 +139,11 @@ def runPipeLine():
     processedFiles += getProcessedFiles(logFailed)
 
     filesCount = len(rawFiles)
+    globalNameValue = []
+    globalNameReverse = {}
+    nodeConnectivity = {}
+    nodeMetrics = {}
+
 
     for file in rawFiles:
         if file not in processedFiles:
@@ -163,7 +151,7 @@ def runPipeLine():
             start = time.clock()
             print "processing " + file
             try:
-                createDictionaries(file)
+                (globalNameValue,globalNameReverse,nodeConnectivity) = createDictionaries(file,globalNameValue, globalNameReverse, nodeConnectivity, nodeMetrics)
                 eTime = time.clock() - start
                 print str(eTime) + ' sec'
 
