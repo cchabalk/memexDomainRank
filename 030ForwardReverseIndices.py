@@ -5,6 +5,7 @@ from os import listdir
 from os.path import isfile, join, normpath
 import sys
 import time
+import csv
 
 
 
@@ -122,6 +123,30 @@ def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnecti
     print len(nodeConnectivity.keys())
     return (globalNameValue,globalNameReverse,nodeConnectivity)
 
+def checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity):
+
+    #globalNameValue is a list; however, it is encoded as a json
+    #because it contains unicode
+    gnv = {'gnv':globalNameValue}
+    try:
+        with gzip.open('./globalNameValue.jl.gz', 'w+') as fp:
+            fp.write(ujson.dumps(gnv))
+    except:
+        print "unable to write globalNameValues"
+
+    try:
+        with gzip.open('./globalNameReverse.jl.gz', 'w+') as fp:
+            fp.write(ujson.dumps(globalNameReverse))
+    except:
+        print "unable to write globalNameReverse"
+
+    try:
+        with gzip.open('./nodeConnectivity.jl.gz', 'w+') as fp:
+            fp.write(ujson.dumps(nodeConnectivity))
+    except:
+        print "unable to write nodeConnectivity"
+
+
 def runPipeLine():
     nameValueDict = {}
     nameValueMeta = {}
@@ -162,6 +187,7 @@ def runPipeLine():
             except:
                 print 'failed; ', file
                 #writeFailedLog(logFailed, file)
+    checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity)
 
 if __name__=='__main__':
     runPipeLine()
