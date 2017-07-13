@@ -10,7 +10,7 @@ import gc
 from multiprocessing import Pool
 import signal
 
-from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog
+from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
 
 def getGzFilesInDirectory(inDir):
     inDir = normpath(inDir)
@@ -174,10 +174,10 @@ def writeDictToCsv(fileName, linksDict):
     print "wrote " + countedFile
     return
 
-def ensure_dir(file_path):
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+# def ensure_dir(file_path):
+#     directory = os.path.dirname(file_path)
+#     if not os.path.exists(directory):
+#         os.makedirs(directory)
 
 
 
@@ -315,7 +315,7 @@ def runPipeLine(baseDir):
     #pool to ensure the processing thread is eliminated and memory is returned
 
     # All work is stored in the type2 subfolder of the main data folder
-    baseDirAbs = cleanPath(baseDir + '/type2')
+    baseDirAbs = cleanPath(baseDir + '/type2/')
     
     # Get the list of files to process
     rawFiles = getFilesInDirectory(baseDirAbs)

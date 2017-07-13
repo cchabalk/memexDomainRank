@@ -13,6 +13,8 @@ import signal
 def cleanPath(inPath):
     outPath = normpath(inPath)
     outPath = os.path.abspath(outPath)
+    if os.path.isdir(outPath):
+        outPath = outPath + '/'
     return outPath
 
 def getLogFilePaths(inPath, textModifier):

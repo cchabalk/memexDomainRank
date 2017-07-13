@@ -9,7 +9,9 @@ import csv
 import networkx as nx
 import numpy as numpy
 import pandas as pd
-from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
+# from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
+from fileSupportFunctions import *
+from urlFeatureExtraction import createURLAttributes, createUrlAttributesFromFile, urlAttributesDictToSortedCSVs
 
 def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnectivity, nodeMetrics):
     linesCount = 0
@@ -72,68 +74,68 @@ def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnecti
     print len(nodeConnectivity.keys())
     return (globalNameValue,globalNameReverse,nodeConnectivity)
 
-def checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity):
+def checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity,outputDirAbs):
 
     #globalNameValue is a list; however, it is encoded as a json
     #because it contains unicode
     gnv = {'gnv':globalNameValue}
     try:
-        with gzip.open('./globalNameValue.jl.gz', 'w+') as fp:
+        with gzip.open(outputDirAbs + '/globalNameValue.jl.gz', 'w+') as fp:
             fp.write(ujson.dumps(gnv))
     except:
         print "unable to write globalNameValues"
 
     try:
-        with gzip.open('./globalNameReverse.jl.gz', 'w+') as fp:
+        with gzip.open(outputDirAbs + '/globalNameReverse.jl.gz', 'w+') as fp:
             fp.write(ujson.dumps(globalNameReverse))
     except:
         print "unable to write globalNameReverse"
 
     try:
-        with gzip.open('./nodeConnectivity.jl.gz', 'w+') as fp:
+        with gzip.open(outputDirAbs + '/nodeConnectivity.jl.gz', 'w+') as fp:
             fp.write(ujson.dumps(nodeConnectivity))
     except:
         print "unable to write nodeConnectivity"
 
-def createURLAttributes(nodeConnectivityDict):
-    # Weighted directed graph to hold the website connections
-    G = nx.DiGraph()
+# def createURLAttributes(nodeConnectivityDict):
+#     # Weighted directed graph to hold the website connections
+#     G = nx.DiGraph()
 
-    # Append all unique edges. Currently assumes no duplicated edges
-    edges = []
-    for parentURL, childrenURLs in nodeConnectivityDict.items():
-        for childURL, childCount in childrenURLs.items():
-            edges.append((parentURL, childURL, childCount))
-    G.add_weighted_edges_from(edges)
+#     # Append all unique edges. Currently assumes no duplicated edges
+#     edges = []
+#     for parentURL, childrenURLs in nodeConnectivityDict.items():
+#         for childURL, childCount in childrenURLs.items():
+#             edges.append((parentURL, childURL, childCount))
+#     G.add_weighted_edges_from(edges)
 
-    # Create a blank dictionary to hold the attributes of each URL in the graph
-    URL_attr = {parentURL: {'outdeg': 0, 'indeg': 0, 'uniquein': 0, 'uniqueout': 0, 'pagerank': 0.0} \
-                for parentURL in G.nodes()}
+#     # Create a blank dictionary to hold the attributes of each URL in the graph
+#     URL_attr = {parentURL: {'outdeg': 0, 'indeg': 0, 'uniquein': 0, 'uniqueout': 0, 'pagerank': 0.0} \
+#                 for parentURL in G.nodes()}
 
-    # Find unique number of outgoing edges, total edge weight of outgoing edges
-    uniqueout = G.out_degree()
-    outdeg = G.out_degree(weight='weight')
+#     # Find unique number of outgoing edges, total edge weight of outgoing edges
+#     uniqueout = G.out_degree()
+#     outdeg = G.out_degree(weight='weight')
 
-    # Find unique number of incoming edges, total edge weight of incoming edges
-    uniquein = G.in_degree()
-    indeg = G.in_degree(weight='weight')
+#     # Find unique number of incoming edges, total edge weight of incoming edges
+#     uniquein = G.in_degree()
+#     indeg = G.in_degree(weight='weight')
 
-    # Store these values in a dictionary we can use for ML or any other ranking alg
-    for URL in G.nodes():
-        URL_attr[URL]['uniqueout'] = uniqueout[URL]
-        URL_attr[URL]['uniquein'] = uniquein[URL]
-        URL_attr[URL]['outdeg'] = outdeg[URL]
-        URL_attr[URL]['indeg'] = indeg[URL]
-        URL_attr[URL]['uin_uout_ratio'] = 0.0 if uniqueout[URL]==0 else float(uniquein[URL])/uniqueout[URL]
-        URL_attr[URL]['in_out_ratio'] = 0.0 if outdeg[URL]==0 else float(indeg[URL])/outdeg[URL]
+#     # Store these values in a dictionary we can use for ML or any other ranking alg
+#     for URL in G.nodes():
+#         URL_attr[URL]['uniqueout'] = uniqueout[URL]
+#         URL_attr[URL]['uniquein'] = uniquein[URL]
+#         URL_attr[URL]['outdeg'] = outdeg[URL]
+#         URL_attr[URL]['indeg'] = indeg[URL]
+#         URL_attr[URL]['uin_uout_ratio'] = 0.0 if uniqueout[URL]==0 else float(uniquein[URL])/uniqueout[URL]
+#         URL_attr[URL]['in_out_ratio'] = 0.0 if outdeg[URL]==0 else float(indeg[URL])/outdeg[URL]
 
-    # Calculate and store the weighted and unweighted pagerank for each
-    for URL, prval in nx.pagerank(G, weight='weight').iteritems():
-        URL_attr[URL]['pagerank'] = prval
-    for URL, prval in nx.pagerank(G, weight=None).iteritems():
-        URL_attr[URL]['pagerank_noweight'] = prval
+#     # Calculate and store the weighted and unweighted pagerank for each
+#     for URL, prval in nx.pagerank(G, weight='weight').iteritems():
+#         URL_attr[URL]['pagerank'] = prval
+#     for URL, prval in nx.pagerank(G, weight=None).iteritems():
+#         URL_attr[URL]['pagerank_noweight'] = prval
 
-    return URL_attr #the dictionary with all URL nodes and their calculated attributes
+#     return URL_attr #the dictionary with all URL nodes and their calculated attributes
 
 def runPipeLine(baseDir):
     nameValueDict = {}
@@ -186,10 +188,13 @@ def runPipeLine(baseDir):
             except:
                 print 'failed; ', file
                 #writeFailedLog(logFailed, file)
-    checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity)
+    checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity,baseDirAbs)
+
+    #  
     urlAttributeDictionary = createURLAttributes(nodeConnectivity)
 
     pd.DataFrame(urlAttributeDictionary).transpose().to_csv(cleanPath(baseDirAbs+'/linkAttributes.csv'), encoding='utf8')
+    urlAttributesDictToSortedCSVs(urlAttributeDictionary, baseDirAbs)
 
 # This only needs to be set when running the script individually
 baseDirStandalone = "../memexGithub/data/"
