@@ -32,7 +32,6 @@ def parseLinksLXML(inString):
         pass
     return linkList
 
-
 def parseLinksBS4(inString):
     linkList = []
     try:
@@ -65,47 +64,7 @@ def parseListLinks(inJSON):
     #return jsonString
     return outJSON
 
-
-# def getFilesInDirectory(inDir):
-#     inDir = normpath(inDir)
-#     onlyFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)))]
-#     return onlyFiles
-
-# def getProcessedFiles(inFile):
-#     inFile = normpath(inFile)
-#     processedFiles = []
-#     try:
-#         with open(inFile) as fp:
-#             #processedFiles = fp.readlines()
-#             processedFiles = fp.read().splitlines()
-#     except:
-#         processedFiles = []
-#     return processedFiles
-
-# def writeLogFile(logFilePath,processedFileName):
-#     logFilePath = normpath(logFilePath)
-#     processedFileName = normpath(processedFileName)
-#     if os.path.isfile(logFilePath) == False:
-#         with open(logFilePath,'w+') as fp: #create the log file
-#             pass
-
-#     with open(logFilePath,'a+') as fp:
-#         fp.write(processedFileName + '\n')
-
-
-
-# def writeFailedLog(logFilePath,failedFileName):
-#     logFilePath = normpath(logFilePath)
-#     failedFileName = normpath(failedFileName)
-#     if os.path.isfile(logFilePath) == False:
-#         with open(logFilePath,'w+') as fp: #create the log file
-#             pass
-
-#     with open(logFilePath,'a+') as fp:
-#         fp.write(failedFileName + '\n')
-
-
-def parseLinksFromFile(inFile):
+def cleanLinksFromFile(inFile):
     inFile = normpath(inFile)
     # create a pool of N workers
     #N = cpu_count()-1
@@ -159,7 +118,7 @@ def parseLinksFromFile(inFile):
                     print 'reached end of file'
                     keepGoing = False
 
-            output = pool.map(parseParentsAndChildren, data)
+            output = pool.map(cleanParentsAndChildren, data)
             #output = map(parseParentsAndChildren, data)
 
 
@@ -196,32 +155,28 @@ def parseLinksFromFile(inFile):
 
     return
 
-def parseParentsAndChildren(inputString):
-
+def cleanParentsAndChildren(inputString):
+	"""
+	This function takes in input from XXXXX type of input, which has already grabbed
+	parent and children links. It then cleans them and outputs them in the expected formats
+	for the rest of the processing pipeline.
+	"""
+	
     jsonEntry = ujson.loads(inputString)
     inputString = []
+    # These links don't need to be parsed from XML, will be in list format for the JSON
     try:
         #print jsonEntry.keys()
         parentURL = jsonEntry['url'].rstrip(' ').lstrip(' ')
-
     except:
         parentURL = 'http://www.error.com'
         print 'exception'
     try:
-        dom = lxml.html.fromstring(jsonEntry['raw_content'])
-        extractedLinks = dom.xpath('//a/@href')
+    	extractedLinks = jsonEntry['children']
     except:
-        try:
-            extractedLinks = parseLinksBS4(jsonEntry['raw_content'])
-            #print 'tricky'
-        except:
-            extractedLinks = []
-            pass
-            #print jsonEntry['raw_content']
-            #sys.exit()
+    	extractedLinks = []
 
-    #if links were already extracted; they could be inserted here
-    #and the process could be picked up
+    ##### The extracted links should be in the correct format now, and the rest of the normal process can continue #####
 
     parentURL = cleanParent(parentURL)
     extractedLinks = cleanChildren(parentURL, extractedLinks)
@@ -284,9 +239,6 @@ def cleanChildren(parentURL,extractedLinks):
         #    print str(k) + '/' + str(N),
     return cleanedLinks
 
-
-
-
 def reparse(inputList):
 
     #TO DO - GET WEIGHTS
@@ -320,7 +272,6 @@ def reparse(inputList):
 
     return (type1List,type2List,type3List)
 
-
 def writeAllFiles(inFile,chunk1,chunk2,chunk3):
     #append to gzip
     caseName = os.path.basename(inFile)
@@ -341,7 +292,6 @@ def writeAllFiles(inFile,chunk1,chunk2,chunk3):
             fp.write(item + '\n')
     return
 
-
 def writeFileFirstTime(inFile):
     #create/erase
     caseName = os.path.basename(inFile)
@@ -358,52 +308,13 @@ def writeFileFirstTime(inFile):
                 pass
         except:
             pass
-    # fileName = normpath(baseDirName + '/type1/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type1/') == False:
-    #     os.makedirs(baseDirName + '/type1/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
-    # fileName = normpath(baseDirName + '/type2/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type2/') == False:
-    #     os.makedirs(baseDirName + '/type2/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
-    # fileName = normpath(baseDirName + '/type3/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type3/') == False:
-    #     os.makedirs(baseDirName + '/type3/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
 
     return
 
-
-
-
 def runPipeLine(baseDir):
-
-    # #get list of unprocessed files
-    # rawFileDir = '../memexGithub/data/'
-
-    # #get list of processed type3 files - the last ones written
-    # logSuccess = '../memexGithub/processedFiles.txt'
-    # logFailed = '../memexGithub/failedFiles.txt'
-    # rawFiles = getFilesInDirectory(rawFileDir)
-
-    # processedFiles = getProcessedFiles(logSuccess)
-    # processedFiles += getProcessedFiles(logFailed)
-
+	#######################################################
+	###### Run all support functions to ingest files #####
+	#####################################################
     # All work is stored in the type2 subfolder of the main data folder
     baseDirAbs = cleanPath(baseDir)
     
@@ -411,10 +322,13 @@ def runPipeLine(baseDir):
     rawFiles = getFilesInDirectory(baseDirAbs)
 
     # Get list of files that have already been processed 
-    logSuccess, logFailed = getLogFilePaths(baseDirAbs, "Parse")
+    logSuccess, logFailed = getLogFilePaths(baseDirAbs, "CleanLinks")
     processedFiles = getProcessedFiles(logSuccess)
     processedFiles += getProcessedFiles(logFailed)
 
+    #######################################################
+	###### Process all files already containing links ####
+	#####################################################
     for file in rawFiles:
         if file not in processedFiles:
             #do the processing here
@@ -422,7 +336,7 @@ def runPipeLine(baseDir):
             print "processing " + file
 #            file = 'hg_try_5_3438c921200e_items_deduped.jl.gz'
             try:
-                parseLinksFromFile(normpath(os.path.join(baseDirAbs,file)))
+                cleanLinksFromFile(normpath(os.path.join(baseDirAbs,file)))
                 eTime = time.clock()-start
                 print str(eTime) + ' sec'
 
@@ -434,63 +348,6 @@ def runPipeLine(baseDir):
                 print 'failed; ', file
                 writeFailedLog(logFailed, file)
 
-
-
-
-#notes: the files only seem to work if they are open copmletely, not one line at a time
-
-#fileName = './data/hg_0cc657f0f82f_items_deduped.jl.gz'
-# fileName = './data/hg_187f84e8b3e7_items_deduped.jl.gz'
-#
-# timing = []
-# data   = []
-# count  = 0
-# failed = 0
-#
-# with gzip.open(fileName,'rb') as fp:
-#     data = fp.readlines()
-#
-# count = len(data)
-# start = time.time()
-#
-#
-# #with map and pool
-# pool = Pool()
-# output = pool.map(parseListLinks,data)
-# output = ujson.dumps()
-# pool.close()
-# pool.join()
-#
-#
-# outputFile = 'tempOutput.jl.gz'
-# with gzip.open(outputFile,'wb') as fp:
-#     ujson.dump(output,fp)
-#
-#
-# #read with
-# #with gzip.open(outputFile,'rb') as fp:
-# #    data = ujson.load(fp)
-#
-# #try with itertools for multiple arguements
-#
-# #pool = Pool()
-# #outList = pool.map(parseListLinks,itertools.izip(data, itertools.repeat(count)))
-# #pool.close()
-# #pool.join()
-#
-#
-# totalTime = time.time() - start
-#
-#
-# linesPerSecond = count/totalTime
-# print count, ' lines!!'
-# print 'lines per second: ', linesPerSecond
-#
-# #217 lines per second - serial
-# #137 lines per second - serial with return
-# #286 lines per second - parallel
-#
-#
 
 # This only needs to be set when running the script individually
 baseDirStandalone = "../memexGithub/data/"

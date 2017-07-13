@@ -74,3 +74,8 @@ def writeFailedLog(logFilePath,failedFileName):
 
     with open(logFilePath,'a+') as fp:
         fp.write(failedFileName + '\n')
+
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
