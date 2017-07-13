@@ -7,6 +7,6 @@ BASE_DIR = "../memexGithub/data/"
 
 if __name__ == '__main__':
 	## parse the links from the raw dump ##
-	parseLinks.runPipeLine()
-	countLinks.runPipeLine()
-	forrevIndices.runPipeLine()
+	parseLinks.runPipeLine(BASE_DIR)
+	countLinks.runPipeLine(BASE_DIR)
+	forrevIndices.runPipeLine(BASE_DIR)
