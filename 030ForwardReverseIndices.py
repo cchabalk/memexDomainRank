@@ -197,6 +197,6 @@ def runPipeLine(baseDir):
     urlAttributesDictToSortedCSVs(urlAttributeDictionary, baseDirAbs)
 
 # This only needs to be set when running the script individually
-baseDirStandalone = "../memexGithub/data/"
+baseDirStandalone = "../memexGithubLargeDataTest/data/"
 if __name__=='__main__':
     runPipeLine(baseDirStandalone)

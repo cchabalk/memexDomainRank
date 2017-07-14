@@ -16,10 +16,7 @@ from os import listdir
 from os.path import isfile, join, normpath
 import sys
 
-from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
-
-import logging
-logging.basicConfig(level=logging.DEBUG, filename='../memexGithubLargeDataTest/error.log')
+from fileSupportFunctions import *
 
 debug = False
 
@@ -140,7 +137,7 @@ def parseLinksFromFile(inFile):
         N=1
     start = time.clock()
     pool = Pool(N)
-    heartBeat = 50*N  #heartbeat
+    heartBeat = 500*N  #heartbeat
     exportChunk = 100000  # lines
     if debug==True:
         exportChunk = 5  # lines
@@ -212,11 +209,9 @@ def parseParentsAndChildren(inputString):
     try:
         #print jsonEntry.keys()
         parentURL = jsonEntry['url'].rstrip(' ').lstrip(' ')
-
     except:
         parentURL = 'http://www.error.com'
         print 'exception'
-        logging.exception('URL_Parse_Failure')
     try:
         dom = lxml.html.fromstring(jsonEntry['raw_content'])
         extractedLinks = dom.xpath('//a/@href')
@@ -225,37 +220,28 @@ def parseParentsAndChildren(inputString):
             extractedLinks = parseLinksBS4(jsonEntry['raw_content'])
             #print 'tricky'
         except:
-            logging.exception('Logging_Parse_Failure')
             extractedLinks = []
             pass
             #print jsonEntry['raw_content']
             #sys.exit()
 
     #if links were already extracted; they could be inserted here
-    #and the process could be picked up
-    try:
-        parentURL = cleanParent(parentURL)
-        extractedLinks = cleanChildren(parentURL, extractedLinks)
-    except:
-        logging.exception('Parent_Children_Cleaning_Failure')
+    #and the process could be picked up : SOLVED with 040
+    parentURL = cleanParent(parentURL)
+    extractedLinks = cleanChildren(parentURL, extractedLinks)
+    
+    #parse links 3 different ways
+    (parent1,parent2,parent3) = reparse([parentURL])  #it expects a list
+    (children1,children2,children3)=reparse(extractedLinks)
 
-    try:
-        #parse links 3 different ways
-        (parent1,parent2,parent3) = reparse([parentURL])  #it expects a list
-        (children1,children2,children3)=reparse(extractedLinks)
-    except:
-        logging.exception('Reparse_Failure')
-    try:
-        #put into json
-        pc1 = {'parentURL':parent1[0],'childLinks':children1}
-        pc2 = {'parentURL':parent2[0],'childLinks':children2}
-        pc3 = {'parentURL':parent3[0],'childLinks':children3}
+    #put into json
+    pc1 = {'parentURL':parent1[0],'childLinks':children1}
+    pc2 = {'parentURL':parent2[0],'childLinks':children2}
+    pc3 = {'parentURL':parent3[0],'childLinks':children3}
 
-        pc1 = ujson.dumps(pc1)
-        pc2 = ujson.dumps(pc2)
-        pc3 = ujson.dumps(pc3)
-    except:
-        logging.exception('JSON_Dump_Failure')
+    pc1 = ujson.dumps(pc1, ensure_ascii=False)
+    pc2 = ujson.dumps(pc2, ensure_ascii=False)
+    pc3 = ujson.dumps(pc3, ensure_ascii=False)
 
     return (pc1,pc2,pc3)  #return tuple of strings
 
@@ -510,6 +496,7 @@ def runPipeLine(baseDir):
 #
 
 # This only needs to be set when running the script individually
+# baseDirStandalone = "../errorDataTest/"
 baseDirStandalone = "../memexGithubLargeDataTest/data/"
 if __name__ == '__main__':
     runPipeLine(baseDirStandalone)

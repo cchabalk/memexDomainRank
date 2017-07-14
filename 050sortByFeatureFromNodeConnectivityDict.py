@@ -5,7 +5,8 @@ from fileSupportFunctions import *
 from urlFeatureExtraction import createURLAttributes, createUrlAttributesFromFile, urlAttributesDictToSortedCSVs
 
 # this will only be used when running the function standalone
-nodeConnectivityFileLocation = '../memexGithub/data/type2/counted/nodeConnectivity.jl.gz'
+baseDir = '../memexGithubLargeDataTest/data/'
+nodeConnectivityFileLocation = baseDir + '/type2/counted/nodeConnectivity.jl.gz'
 if __name__ == '__main__':
 	urlAttributeDict = createUrlAttributesFromFile(nodeConnectivityFileLocation)
 	urlAttributesDictToSortedCSVs(urlAttributeDict, nodeConnectivityFileLocation)
