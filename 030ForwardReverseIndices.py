@@ -193,6 +193,16 @@ def runPipeLine(baseDir):
     #  
     urlAttributeDictionary = createURLAttributes(nodeConnectivity)
 
+    # TO DO
+    # remove seed sites
+    # try:
+    #    2+2
+    #    pass
+    #    #urlAttributeDictionary = filterOutSeedSites(pathToSeedFile,urlAttributeDictionary)
+    # except:
+    #    #maybe no seed sites
+    #    pass
+
     pd.DataFrame(urlAttributeDictionary).transpose().to_csv(cleanPath(baseDirAbs+'/linkAttributes.csv'), encoding='utf8')
     urlAttributesDictToSortedCSVs(urlAttributeDictionary, baseDirAbs)
 

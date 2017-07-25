@@ -305,16 +305,26 @@ def reparse(inputList):
         #TYPE 1
         type1Temp = inputString.split('?')[0]  #POST parameters do not denote unique node
         type1Temp = type1Temp.split(';')[0]  #; shows up as some sort of delimiter in URL's
+        type1Temp = type1Temp.replace('www.','') #treat www. and non-www. addresses the same
+        #TO DO: fix above to ensure www. only appears at the beginning of an address
         type1List.append(type1Temp)
 
         #TYPE 2
         type2Temp = inputString.replace('http://','').replace('https://','').replace('http:/','').replace('https:/','')
         type2Temp = type2Temp.split('/')[0]    #keep the 1st
+        type2Temp = type2Temp.split('?')[0]  #yes - sometimes a link is www.example.com?x=5104.7545.4961...
+        type2Temp = type2Temp.split('#')[0] #remove anchor tags
+        type2Temp = type2Temp.replace('www.','') #treat www. and non-www. addresses the same
+        #TO DO: fix above to ensure www. only appears at the beginning of an address
         type2List.append(type2Temp)
 
         #TYPE 3
         type3Temp = inputString.replace('http://','').replace('https://','').replace('http:/','').replace('https:/','')
         type3Temp = type3Temp.split('/')[0]    #keep the 1st
+        type3Temp = type3Temp.split('?')[0]  # yes - sometimes a link is www.example.com?x=5104.7545.4961...
+        type3Temp = type3Temp.split('#')[0] #get rid of anchor tags...
+        type3Temp = type3Temp.replace('www.','') #treat www. and non-www. addresses the same
+        #TO DO: fix above to ensure www. only appears at the beginning of an address
         if '.co.' in type3Temp: #this includes .co.uk & .co.in & others
            type3Temp = '.'.join(type3Temp.split('.')[-3:])  #keep the last three
         else:

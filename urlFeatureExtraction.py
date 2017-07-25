@@ -83,3 +83,4 @@ def urlAttributesDictToSortedCSVs(urlAttributeDictionary, nodeConnectivityFileAb
 	for featureCol in featureCols:
 	    # Output sorted by the various possible parameters
 		dfUrl.sort_values(featureCol,ascending=False).to_csv(cleanPath(outDir + featureCol + '.csv'), encoding='utf8')
+
