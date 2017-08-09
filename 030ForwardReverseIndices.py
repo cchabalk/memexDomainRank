@@ -13,6 +13,15 @@ import pandas as pd
 from fileSupportFunctions import *
 from urlFeatureExtraction import createURLAttributes, createUrlAttributesFromFile, urlAttributesDictToSortedCSVs
 
+####################################################################
+########## Parameters to to set when running stand alone ###########
+####################################################################
+
+baseDirStandalone = "../mediumDataTest/"
+CONFIG_FILE_PATH = "./config"
+
+####################################################################
+
 def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnectivity, nodeMetrics):
     linesCount = 0
     localNameValue = set()
@@ -64,11 +73,6 @@ def createDictionaries(fileName,globalNameValue, globalNameReverse, nodeConnecti
         #update the child count dict in the global node dict
         nodeConnectivity[item] = globalNodeDict
 
-
-
-
-
-
     print len(globalNameValue)
     print len(globalNameReverse.keys())
     print len(nodeConnectivity.keys())
@@ -97,64 +101,11 @@ def checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity,outputDi
     except:
         print "unable to write nodeConnectivity"
 
-# def createURLAttributes(nodeConnectivityDict):
-#     # Weighted directed graph to hold the website connections
-#     G = nx.DiGraph()
-
-#     # Append all unique edges. Currently assumes no duplicated edges
-#     edges = []
-#     for parentURL, childrenURLs in nodeConnectivityDict.items():
-#         for childURL, childCount in childrenURLs.items():
-#             edges.append((parentURL, childURL, childCount))
-#     G.add_weighted_edges_from(edges)
-
-#     # Create a blank dictionary to hold the attributes of each URL in the graph
-#     URL_attr = {parentURL: {'outdeg': 0, 'indeg': 0, 'uniquein': 0, 'uniqueout': 0, 'pagerank': 0.0} \
-#                 for parentURL in G.nodes()}
-
-#     # Find unique number of outgoing edges, total edge weight of outgoing edges
-#     uniqueout = G.out_degree()
-#     outdeg = G.out_degree(weight='weight')
-
-#     # Find unique number of incoming edges, total edge weight of incoming edges
-#     uniquein = G.in_degree()
-#     indeg = G.in_degree(weight='weight')
-
-#     # Store these values in a dictionary we can use for ML or any other ranking alg
-#     for URL in G.nodes():
-#         URL_attr[URL]['uniqueout'] = uniqueout[URL]
-#         URL_attr[URL]['uniquein'] = uniquein[URL]
-#         URL_attr[URL]['outdeg'] = outdeg[URL]
-#         URL_attr[URL]['indeg'] = indeg[URL]
-#         URL_attr[URL]['uin_uout_ratio'] = 0.0 if uniqueout[URL]==0 else float(uniquein[URL])/uniqueout[URL]
-#         URL_attr[URL]['in_out_ratio'] = 0.0 if outdeg[URL]==0 else float(indeg[URL])/outdeg[URL]
-
-#     # Calculate and store the weighted and unweighted pagerank for each
-#     for URL, prval in nx.pagerank(G, weight='weight').iteritems():
-#         URL_attr[URL]['pagerank'] = prval
-#     for URL, prval in nx.pagerank(G, weight=None).iteritems():
-#         URL_attr[URL]['pagerank_noweight'] = prval
-
-#     return URL_attr #the dictionary with all URL nodes and their calculated attributes
-
-def runPipeLine(baseDir):
+def runPipeLine(baseDir, typeToParse, config):
     nameValueDict = {}
-    nameValueMeta = {}
+    nameValueMeta = {}        
 
-
-    # inDir = '../memexDomainRank/data/type2/counted/'
-    # inDir = normpath(inDir)
-
-    # #get list of processed files
-    # logSuccess = normpath(inDir + normpath('/processedFiles.txt'))
-    # logFailed = normpath(inDir + normpath('/failedFiles.txt'))
-    # rawFiles = getFilesInDirectory(inDir)
-
-    # processedFiles = getProcessedFiles(logSuccess)
-    # processedFiles += getProcessedFiles(logFailed)
-
-    # All work is stored in the type2 subfolder of the main data folder
-    baseDirAbs = cleanPath(baseDir + '/type2/counted/')
+    baseDirAbs = cleanPath(baseDir + '/' + typeToParse + '/counted/')
     
     # Get the list of files to process
     rawFiles = getFilesInDirectory(baseDirAbs)
@@ -169,7 +120,6 @@ def runPipeLine(baseDir):
     globalNameReverse = {}
     nodeConnectivity = {}
     nodeMetrics = {}
-
 
     for file in rawFiles:
         if file not in processedFiles:
@@ -190,6 +140,13 @@ def runPipeLine(baseDir):
                 #writeFailedLog(logFailed, file)
     checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity,baseDirAbs)
 
+    outputSortedAttributeLists = config["output sorted lists by each attribute"]
+    
+    performPageRankFilter = config["filter by top pagerank"]
+    topNPageRankToFilter = config["top N of pagerank to filter"]
+    
+    performSiteFilter = config["filter custom URL list"]
+    sitesToFilter = config["URL_list"]
     #  
     urlAttributeDictionary = createURLAttributes(nodeConnectivity)
 
@@ -206,7 +163,18 @@ def runPipeLine(baseDir):
     pd.DataFrame(urlAttributeDictionary).transpose().to_csv(cleanPath(baseDirAbs+'/linkAttributes.csv'), encoding='utf8')
     urlAttributesDictToSortedCSVs(urlAttributeDictionary, baseDirAbs)
 
-# This only needs to be set when running the script individually
-baseDirStandalone = "../memexGithubLargeDataTest/data/"
+#######################################################################################
+########## main function for standalone use, not used when full pipeline run ##########
+#######################################################################################
+
 if __name__=='__main__':
-    runPipeLine(baseDirStandalone)
+    # load in the configuration file, a default is loaded if config file not found
+    config = loadconfig(CONFIG_FILE_PATH)
+
+    # extract the set of link types to work on
+    typesToParseLinks = config["types to parse"]
+
+    # Run the pipeline for each link type
+    for typeToParse in typesToParseLinks:
+        runPipeLine(baseDirStandalone, typeToParse, config)
+
