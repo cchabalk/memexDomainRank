@@ -1,0 +1,12 @@
+{
+"types to parse": ["type2", "type3"],
+"link attributes sort parameter": "outdeg",
+"output sorted lists by each attribute": "False",
+"filter link attributes by top pagerank": "True",
+"top N of pagerank to filter": 20,
+"filter custom URL list": "True",
+"filter custom URL list files directory": "path_here",
+"output non URL filtered list": "True",
+"URL filter list": ["www.sampleURLToFilter.com",
+			"www.secondSampleURLToFilter.com"]
+}

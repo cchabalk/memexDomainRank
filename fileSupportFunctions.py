@@ -9,6 +9,7 @@ import time
 import gc
 from multiprocessing import Pool
 import signal
+import ujson
 
 def cleanPath(inPath):
     outPath = normpath(inPath)
@@ -81,3 +82,12 @@ def ensure_dir(file_path):
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory)
+
+def loadconfig(config_path):
+    # load in the configuration file, use the default if unable to load
+    try:
+        config = ujson.load(open(config_path))
+    except:
+        print "Error loading configuration file"
+        config = {"types to parse": ["type2"]}
+    return config

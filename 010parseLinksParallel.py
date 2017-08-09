@@ -17,6 +17,16 @@ from os.path import isfile, join, normpath
 import sys
 
 from fileSupportFunctions import *
+from urlSupportFunctions import multipleUnquote, cleanParent, cleanChildren
+
+####################################################################
+########## Parameters to to set when running stand alone ###########
+####################################################################
+
+baseDirStandalone = "../mediumDataTest/"
+CONFIG_FILE_PATH = "./config"
+
+####################################################################
 
 debug = False
 
@@ -64,46 +74,6 @@ def parseListLinks(inJSON):
     jsonString = ujson.dumps(outJSON)
     #return jsonString
     return outJSON
-
-
-# def getFilesInDirectory(inDir):
-#     inDir = normpath(inDir)
-#     onlyFiles = [f for f in listdir(inDir) if (isfile(join(inDir, f)))]
-#     return onlyFiles
-
-# def getProcessedFiles(inFile):
-#     inFile = normpath(inFile)
-#     processedFiles = []
-#     try:
-#         with open(inFile) as fp:
-#             #processedFiles = fp.readlines()
-#             processedFiles = fp.read().splitlines()
-#     except:
-#         processedFiles = []
-#     return processedFiles
-
-# def writeLogFile(logFilePath,processedFileName):
-#     logFilePath = normpath(logFilePath)
-#     processedFileName = normpath(processedFileName)
-#     if os.path.isfile(logFilePath) == False:
-#         with open(logFilePath,'w+') as fp: #create the log file
-#             pass
-
-#     with open(logFilePath,'a+') as fp:
-#         fp.write(processedFileName + '\n')
-
-
-
-# def writeFailedLog(logFilePath,failedFileName):
-#     logFilePath = normpath(logFilePath)
-#     failedFileName = normpath(failedFileName)
-#     if os.path.isfile(logFilePath) == False:
-#         with open(logFilePath,'w+') as fp: #create the log file
-#             pass
-
-#     with open(logFilePath,'a+') as fp:
-#         fp.write(failedFileName + '\n')
-
 
 def parseLinksFromFile(inFile):
     inFile = normpath(inFile)
@@ -160,7 +130,7 @@ def parseLinksFromFile(inFile):
                     keepGoing = False
 
             output = pool.map(parseParentsAndChildren, data)
-            output = filter(lambda x: type(x)==tuple, output)
+            output = filter(lambda x: type(x)==tuple, output) #gets rid of rows that don't have a URL parsed
             #output = map(parseParentsAndChildren, data)
 
 
@@ -245,47 +215,7 @@ def parseParentsAndChildren(inputString):
 
     return (pc1,pc2,pc3)  #return tuple of strings
 
-def multipleUnquote(s):
-    k = 0
-    while ('%' in s) and (k <= 4):
-        s = urllib.unquote(s)
-        k += 1
-    return s
 
-def cleanParent(parentURL):
-    try:
-        parentURL = multipleUnquote(parentURL)
-        parentURL = parentURL.lstrip()
-        parentURL = parentURL.split(' ')[0]
-    except:
-        parentURL = 'http://www.error.com'
-    return parentURL
-
-
-def cleanChildren(parentURL,extractedLinks):
-    cleanedLinks = []
-    k = 0
-    N = len(extractedLinks)
-    for link in extractedLinks:
-        try:
-            link = multipleUnquote(link)
-            if link[0] == '/':  #pure internal link
-                link = link.split(' ')[0] #remove trailing spaces
-                fullLink = parentURL + link
-                cleanedLinks.append(fullLink)
-                #print fullLink
-            elif link[0:4] == 'http': #pure external link
-                link = link.split(' ')[0] #remove trailing spaces
-                cleanedLinks.append(link)
-            else: #look like javascript and anchor tags; disregard for now
-                pass
-        except Exception as e:
-            #print e
-            pass
-        k += 1
-        #if k%10 == 0: #status update
-        #    print str(k) + '/' + str(N),
-    return cleanedLinks
 
 
 
@@ -371,51 +301,11 @@ def writeFileFirstTime(inFile):
                 pass
         except:
             pass
-    # fileName = normpath(baseDirName + '/type1/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type1/') == False:
-    #     os.makedirs(baseDirName + '/type1/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
-    # fileName = normpath(baseDirName + '/type2/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type2/') == False:
-    #     os.makedirs(baseDirName + '/type2/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
-    # fileName = normpath(baseDirName + '/type3/' + caseName)
-    # #check if directopry erxists; if not create it
-    # if os.path.isdir(baseDirName + '/type3/') == False:
-    #     os.makedirs(baseDirName + '/type3/')
-    # try:
-    #     with gzip.open(fileName,'w') as fp:
-    #         pass
-    # except:
-    #     pass
 
     return
 
-
-
-
-def runPipeLine(baseDir):
-
-    # #get list of unprocessed files
-    # rawFileDir = '../memexGithub/data/'
-
-    # #get list of processed type3 files - the last ones written
-    # logSuccess = '../memexGithub/processedFiles.txt'
-    # logFailed = '../memexGithub/failedFiles.txt'
-    # rawFiles = getFilesInDirectory(rawFileDir)
-
-    # processedFiles = getProcessedFiles(logSuccess)
-    # processedFiles += getProcessedFiles(logFailed)
+def runPipeLine(baseDir, config):
+    # Currently, config is not used, but included for future use
 
     # All work is stored in the type2 subfolder of the main data folder
     baseDirAbs = cleanPath(baseDir)
@@ -447,66 +337,12 @@ def runPipeLine(baseDir):
                 print 'failed; ', file
                 writeFailedLog(logFailed, file)
 
+#######################################################################################
+########## main function for standalone use, not used when full pipeline run ##########
+#######################################################################################
 
+if __name__=='__main__':
+    # load in the configuration file, a default is loaded if config file not found
+    config = loadconfig(CONFIG_FILE_PATH)
 
-
-#notes: the files only seem to work if they are open copmletely, not one line at a time
-
-#fileName = './data/hg_0cc657f0f82f_items_deduped.jl.gz'
-# fileName = './data/hg_187f84e8b3e7_items_deduped.jl.gz'
-#
-# timing = []
-# data   = []
-# count  = 0
-# failed = 0
-#
-# with gzip.open(fileName,'rb') as fp:
-#     data = fp.readlines()
-#
-# count = len(data)
-# start = time.time()
-#
-#
-# #with map and pool
-# pool = Pool()
-# output = pool.map(parseListLinks,data)
-# output = ujson.dumps()
-# pool.close()
-# pool.join()
-#
-#
-# outputFile = 'tempOutput.jl.gz'
-# with gzip.open(outputFile,'wb') as fp:
-#     ujson.dump(output,fp)
-#
-#
-# #read with
-# #with gzip.open(outputFile,'rb') as fp:
-# #    data = ujson.load(fp)
-#
-# #try with itertools for multiple arguements
-#
-# #pool = Pool()
-# #outList = pool.map(parseListLinks,itertools.izip(data, itertools.repeat(count)))
-# #pool.close()
-# #pool.join()
-#
-#
-# totalTime = time.time() - start
-#
-#
-# linesPerSecond = count/totalTime
-# print count, ' lines!!'
-# print 'lines per second: ', linesPerSecond
-#
-# #217 lines per second - serial
-# #137 lines per second - serial with return
-# #286 lines per second - parallel
-#
-#
-
-# This only needs to be set when running the script individually
-# baseDirStandalone = "../errorDataTest/"
-baseDirStandalone = "../memexGithubLargeDataTest/data/"
-if __name__ == '__main__':
-    runPipeLine(baseDirStandalone)
+    runPipeLine(baseDirStandalone, config)

@@ -16,7 +16,8 @@ from os import listdir
 from os.path import isfile, join, normpath
 import sys
 
-from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
+from fileSupportFunctions import *
+from urlSupportFunctions import multipleUnquote, cleanParent, cleanChildren
 
 debug = False
 
@@ -196,48 +197,6 @@ def cleanParentsAndChildren(inputString):
     pc3 = ujson.dumps(pc3)
 
     return (pc1,pc2,pc3)  #return tuple of strings
-
-def multipleUnquote(s):
-    k = 0
-    while ('%' in s) and (k <= 4):
-        s = urllib.unquote(s)
-        k += 1
-    return s
-
-def cleanParent(parentURL):
-    try:
-        parentURL = multipleUnquote(parentURL)
-        parentURL = parentURL.lstrip()
-        parentURL = parentURL.split(' ')[0]
-    except:
-        parentURL = 'http://www.error.com'
-    return parentURL
-
-
-def cleanChildren(parentURL,extractedLinks):
-    cleanedLinks = []
-    k = 0
-    N = len(extractedLinks)
-    for link in extractedLinks:
-        try:
-            link = multipleUnquote(link)
-            if link[0] == '/':  #pure internal link
-                link = link.split(' ')[0] #remove trailing spaces
-                fullLink = parentURL + link
-                cleanedLinks.append(fullLink)
-                #print fullLink
-            elif link[0:4] == 'http': #pure external link
-                link = link.split(' ')[0] #remove trailing spaces
-                cleanedLinks.append(link)
-            else: #look like javascript and anchor tags; disregard for now
-                pass
-        except Exception as e:
-            #print e
-            pass
-        k += 1
-        #if k%10 == 0: #status update
-        #    print str(k) + '/' + str(N),
-    return cleanedLinks
 
 def reparse(inputList):
 

@@ -10,10 +10,55 @@ import networkx as nx
 import numpy as numpy
 import pandas as pd
 import smart_open
-# from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
+
 from fileSupportFunctions import *
 
+def multipleUnquote(s):
+    k = 0
+    while ('%' in s) and (k <= 4):
+        s = urllib.unquote(s)
+        k += 1
+    return s
+
+def cleanParent(parentURL):
+    try:
+        parentURL = multipleUnquote(parentURL)
+        parentURL = parentURL.lstrip()
+        parentURL = parentURL.split(' ')[0]
+    except:
+        parentURL = 'http://www.error.com'
+    return parentURL
+
+
+def cleanChildren(parentURL,extractedLinks):
+    cleanedLinks = []
+    k = 0
+    N = len(extractedLinks)
+    for link in extractedLinks:
+        try:
+            link = multipleUnquote(link)
+            if link[0] == '/':  #pure internal link
+                link = link.split(' ')[0] #remove trailing spaces
+                fullLink = parentURL + link
+                cleanedLinks.append(fullLink)
+                #print fullLink
+            elif link[0:4] == 'http': #pure external link
+                link = link.split(' ')[0] #remove trailing spaces
+                cleanedLinks.append(link)
+            else: #look like javascript and anchor tags; disregard for now
+                pass
+        except Exception as e:
+            #print e
+            pass
+        k += 1
+        #if k%10 == 0: #status update
+        #    print str(k) + '/' + str(N),
+    return cleanedLinks
+
 def createURLAttributes(nodeConnectivityDict):
+    # Takes in a dictionary with a parent URL as key, and a dictionary of children URLs as the value;
+    # This dictionary of children URLs has the child URL as the key and th count of the child URL occurence in the parent URL's crawled pages
+
     # Weighted directed graph to hold the website connections
     G = nx.DiGraph()
 
