@@ -244,7 +244,7 @@ def runPipeLine(baseDir, typeToParse, config):
 
     # All work is stored in the type2 subfolder of the main data folder
     # typeFolder = "type2"
-    baseDirAbs = cleanPath(baseDir + '/' + typeToParse + '/')
+    baseDirAbs = cleanPath(baseDir + '/' + str(typeToParse) + '/')
     print baseDirAbs
     
     # Get the list of files to process

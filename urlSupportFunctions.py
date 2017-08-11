@@ -115,17 +115,17 @@ def createUrlAttributesFromFile(nodeConnectivityFileAbs):
 
 	return urlAttributeDictionary
 
-def urlAttributesDictToSortedCSVs(urlAttributeDictionary, nodeConnectivityFileAbs):
+def urlAttributesDictToSortedCSVs(urlAttributeDictionary, nodeConnectivityFileAbs, file_tag=''):
 	
 	baseDirAbs = cleanPath(os.path.split(nodeConnectivityFileAbs)[0])
 
 	dfUrl = pd.DataFrame(urlAttributeDictionary).transpose()
 
 	featureCols = ['uniqueout', 'uniquein', 'outdeg', 'indeg', 'uin_uout_ratio', 'in_out_ratio', 'pagerank', 'pagerank_noweight']
-	outDir = baseDirAbs + '/nodeConnectivityLists/'
+	outDir = baseDirAbs + '/nodeConnectivityLists' + file_tag + '/'
 	ensure_dir(outDir)
 
 	for featureCol in featureCols:
 	    # Output sorted by the various possible parameters
-		dfUrl.sort_values(featureCol,ascending=False).to_csv(cleanPath(outDir + featureCol + '.csv'), encoding='utf8')
+		dfUrl.sort_values(featureCol,ascending=False).to_csv(cleanPath(outDir + featureCol + file_tag + '.csv'), encoding='utf8')
 

@@ -11,7 +11,7 @@ import numpy as numpy
 import pandas as pd
 # from fileSupportFunctions import cleanPath, getLogFilePaths, getFilesInDirectory, getProcessedFiles, writeLogFile, writeFailedLog, ensure_dir
 from fileSupportFunctions import *
-from urlFeatureExtraction import createURLAttributes, createUrlAttributesFromFile, urlAttributesDictToSortedCSVs
+from urlSupportFunctions import createURLAttributes, createUrlAttributesFromFile, urlAttributesDictToSortedCSVs
 
 ####################################################################
 ########## Parameters to to set when running stand alone ###########
@@ -105,7 +105,7 @@ def runPipeLine(baseDir, typeToParse, config):
     nameValueDict = {}
     nameValueMeta = {}        
 
-    baseDirAbs = cleanPath(baseDir + '/' + typeToParse + '/counted/')
+    baseDirAbs = cleanPath(baseDir + '/' + str(typeToParse) + '/counted/')
     
     # Get the list of files to process
     rawFiles = getFilesInDirectory(baseDirAbs)
@@ -139,29 +139,124 @@ def runPipeLine(baseDir, typeToParse, config):
                 print 'failed; ', file
                 #writeFailedLog(logFailed, file)
     checkPointTables(globalNameValue,globalNameReverse,nodeConnectivity,baseDirAbs)
+ 
+    ################################################################################
+    #### Create URL link graph attributes dictionary and associated DataFrame ######
+    ################################################################################
 
-    outputSortedAttributeLists = config["output sorted lists by each attribute"]
-    
-    performPageRankFilter = config["filter by top pagerank"]
-    topNPageRankToFilter = config["top N of pagerank to filter"]
-    
-    performSiteFilter = config["filter custom URL list"]
-    sitesToFilter = config["URL_list"]
-    #  
+    # This will take in the node node connectivity and create graph attributes for it, returning for each URL in dictionary form
     urlAttributeDictionary = createURLAttributes(nodeConnectivity)
 
-    # TO DO
-    # remove seed sites
-    # try:
-    #    2+2
-    #    pass
-    #    #urlAttributeDictionary = filterOutSeedSites(pathToSeedFile,urlAttributeDictionary)
-    # except:
-    #    #maybe no seed sites
-    #    pass
+    # Extract into DataFrame format to use Pandas utilities
+    df = pd.DataFrame(urlAttributeDictionary).transpose()
 
-    pd.DataFrame(urlAttributeDictionary).transpose().to_csv(cleanPath(baseDirAbs+'/linkAttributes.csv'), encoding='utf8')
-    urlAttributesDictToSortedCSVs(urlAttributeDictionary, baseDirAbs)
+    ###### Sort the DataFrame based on the config parameter ######
+    try:
+        attrToSortBy = str(config["link attributes sort parameter"])
+        df = df.sort_values(attrToSortBy, ascending=False)
+    except:
+        df = df.sort_values('outdeg', ascending=False)
+
+    ##### Create a view of the dataframe that is filtered #####
+    dffil = df
+
+    ###################################################################
+    ##### Filter out the top N sites based on pagerank if desired #####
+    ###################################################################
+
+    filterByPageRank = config["filter link attributes by top pagerank"]
+
+    if str(filterByPageRank).lower()=="true":
+        numberToFilter = int(config["top N of pagerank to filter"])
+        
+        topNToFilter = df.sort_values('pagerank', ascending=False).index.values[:numberToFilter]
+        
+        dffil  = dffil[~dffil.index.isin(topNToFilter)]
+
+    #####################################################################################
+    ##### Filter out sites based on the custom URL list provided in the config file #####
+    #####################################################################################
+
+    filterCustomUrlList = config["filter custom URL list"]
+
+    if str(filterCustomUrlList).lower():
+        urlsToClean = config["URL filter list"]
+        dffil = dffil[~dffil.index.isin(urlsToClean)]
+
+    def getUrlsFromFile(filepath):
+        with open(filepath) as f:
+            allUrls = f.readlines()
+        allUrls = [x.strip() for x in allUrls]
+        return allUrls
+
+    #########################################
+    ###### Filter out URLS from a file ######
+    #########################################
+
+    # Find out if filtering from file is desired
+    cleanUrlsFromFile = config["filter custom URL from files"]
+
+    # If filtering from file is desired...
+    if str(cleanUrlsFromFile).lower()=="true":
+        # Load in and clean the file or directory with the file lists
+        urlsToCleanFilePath = config["custom URL list file or directory"]
+        urlsToCleanFilePath = cleanPath(urlsToCleanFilePath)
+        
+        urlsToFilter = []
+        ##### If path is to single file ########################################
+        if os.path.isfile(urlsToCleanFilePath):
+            try:
+                urlsToFilter += getUrlsFromFile(urlsToCleanFilePath)
+                print "URLs to filter loaded from", urlsToCleanFilePath
+            except:
+                print "Error loading URLs from file", urlsToCleanFilePath
+                
+        ##### If path is to directory with multiple files ######################
+        elif os.path.isdir(urlsToCleanFilePath):
+            try:
+                # Grab the list of files in the directory
+                filesToParse = getFilesInDirectory(urlsToCleanFilePath)
+                # Grab the list of URLs from each file in the directory
+                for fileToParse in filesToParse:
+                    urlsToFilter += getUrlsFromFile(fileToParse)
+                print "URLs to filter loaded from all files in", urlsToCleanFilePath
+            except:
+                print "Error loading files from directory", urlsToCleanFilePath
+                print "List of files attempted:", filesToParse
+        ##### Otherwise, there is no valid file, let the user know #############
+        else:
+            print "Provided file path does not appear to be valid"
+            print "Path provided:", urlsToCleanFilePath
+
+    dffil = dffil[~dffil.index.isin(urlsToFilter)]
+
+    #########################################################################
+    #### Output non-filtered lists sorted by each attribute if desired ######
+    #########################################################################
+
+    # Find out if sorted lists are going to be output. Output if so
+    outputSortedLists = config["output sorted lists by each attribute"]
+    if str(outputSortedLists).lower()=="true":
+        urlAttributesDictToSortedCSVs(df.transpose().to_dict(), baseDirAbs, file_tag='_non_filtered')
+
+    #########################################################################
+    #### Output filtered lists sorted by each attribute if desired ##########
+    #########################################################################
+
+    # Find out if sorted lists are going to be output. Output if so
+    outputSortedLists = config["output filtered sorted lists by each attribute"]
+    if str(outputSortedLists).lower()=="true":
+        urlAttributesDictToSortedCSVs(dffil.transpose().to_dict(), baseDirAbs, file_tag='_filtered')
+
+    #########################################################################
+    ##### Output non-filtered and filtered URL attribute lists ##############
+    #########################################################################
+
+    df.to_csv(cleanPath(baseDirAbs+'/linkAttributes_non_filtered.csv'), encoding='utf8')
+    dffil.to_csv(cleanPath(baseDirAbs+'/linkAttributes_filtered.csv'), encoding='utf8')
+
+    # print "df final shape", df.shape
+    # print "dffil final shape", dffil.shape
 
 #######################################################################################
 ########## main function for standalone use, not used when full pipeline run ##########
