@@ -3,7 +3,7 @@
 The Deep Crawl Recommendation Engine (DCRE) supports domain discovery by recommending sites to deep crawl.  It does this by computing analytics on the result of a broad crawl.  A broad crawl typically captures O(hundreds of thousands to millions) of sites. This number is certainly more than a human can sort through to determine sites which may be of interest to a given domain.  The DCRE system analyzes and ranks these sites.  The highest ranked sites should be considered for additions to periodic deep crawls.
 
 # Input
-The user points the DCRE system at a directory of jl files.  The jl files contain the results of a broad crawl.  Each line is required to have a key named “url” which contains the url of a page.  It is also required to have a key name “original_content” which contains the raw HTML of the captured page.  
+The user points the DCRE system at a directory of jl files.  The jl files contain the results of a broad crawl.  Each line is required to have a key named “cleaned_url” which contains the url of a page.  It is also required to have a key name “raw_content” which contains the raw HTML of the captured page.  
 Input can consist of one or multiple jl files which can optionally be compressed into gz format.  The python package smart_open is used to automatically determine the presence or absence of compression in each file.
 
 # Output
