@@ -17,7 +17,7 @@ from os.path import isfile, join, normpath
 import sys
 
 from fileSupportFunctions import *
-from urlSupportFunctions import multipleUnquote, cleanParent, cleanChildren
+from urlSupportFunctions import multipleUnquote, cleanParent, cleanChildren, parseLinksBS4
 
 ####################################################################
 ########## Parameters to to set when running stand alone ###########
@@ -29,51 +29,6 @@ CONFIG_FILE_PATH = "./config"
 ####################################################################
 
 debug = False
-
-def parseLinksLXML(inString):
-    linkList = []
-    try:
-        dom = lxml.html.fromstring(inString.encode('ascii', 'ignore'))
-        for link in dom.xpath('//a/@href'):  # select the url in href for all a tags(links)
-            linkList.append(link)
-        #if len(linkList) == 12330:
-        #    print 12330
-    except:
-        pass
-    return linkList
-
-
-def parseLinksBS4(inString):
-    linkList = []
-    try:
-        soup = BeautifulSoup(inString.encode('ascii', 'ignore'),"lxml")
-        links = soup.find_all('a')
-
-        for tag in links:
-            link = tag.get('href', None)
-            if link is not None:
-                linkList.append(link)
-    except:
-        linkList = []
-    return linkList
-
-def parseListLinks(inJSON):
-    outList = [] #initialize just in case
-    outJSON = {}
-    jData = ujson.loads(inJSON)
-    outJSON['parentURL'] = jData['cleaned_url']
-    outJSON['links'] = []
-
-    try:
-        # d2 = parseLinksBS4(jData['raw_content'])
-        outList = parseLinksLXML(jData['raw_content'])
-        outJSON['links'] = outList
-    except:
-        #failed += 1
-        pass
-    jsonString = ujson.dumps(outJSON)
-    #return jsonString
-    return outJSON
 
 def parseLinksFromFile(inFile):
     inFile = normpath(inFile)
@@ -262,47 +217,6 @@ def reparse(inputList):
         type3List.append(type3Temp)
 
     return (type1List,type2List,type3List)
-
-
-def writeAllFiles(inFile,chunk1,chunk2,chunk3):
-    #append to gzip
-    caseName = os.path.basename(inFile)
-    baseDirName = os.path.split(inFile)[0]
-    fileName = normpath(baseDirName + '/type1/' + caseName)
-    with gzip.open(fileName,'a+') as fp:
-        for item in chunk1:
-            fp.write(item + '\n')
-
-    fileName = normpath(baseDirName + '/type2/' + caseName)
-    with gzip.open(fileName,'a+') as fp:
-        for item in chunk2:
-            fp.write(item + '\n')
-
-    fileName = normpath(baseDirName + '/type3/' + caseName)
-    with gzip.open(fileName,'a+') as fp:
-        for item in chunk3:
-            fp.write(item + '\n')
-    return
-
-
-def writeFileFirstTime(inFile):
-    #create/erase
-    caseName = os.path.basename(inFile)
-    baseDirName = os.path.split(inFile)[0]
-    
-    folders = ['/type1/', '/type2/', '/type3/']
-
-    for folder in folders:
-        #check if directopry erxists; if not create it
-        ensure_dir(baseDirName + folder)
-        try:
-            fileName = normpath(baseDirName + folder + caseName)
-            with gzip.open(fileName,'w') as fp:
-                pass
-        except:
-            pass
-
-    return
 
 def runPipeLine(baseDir, config):
     # Currently, config is not used, but included for future use

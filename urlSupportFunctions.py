@@ -11,7 +11,53 @@ import numpy as numpy
 import pandas as pd
 import smart_open
 
+from bs4 import BeautifulSoup
+
 from fileSupportFunctions import *
+
+def parseLinksBS4(inString):
+    linkList = []
+    try:
+        soup = BeautifulSoup(inString.encode('ascii', 'ignore'),"lxml")
+        links = soup.find_all('a')
+
+        for tag in links:
+            link = tag.get('href', None)
+            if link is not None:
+                linkList.append(link)
+    except:
+        linkList = []
+    return linkList
+
+def parseLinksLXML(inString):
+    linkList = []
+    try:
+        dom = lxml.html.fromstring(inString.encode('ascii', 'ignore'))
+        for link in dom.xpath('//a/@href'):  # select the url in href for all a tags(links)
+            linkList.append(link)
+        #if len(linkList) == 12330:
+        #    print 12330
+    except:
+        pass
+    return linkList
+
+def parseListLinks(inJSON):
+    outList = [] #initialize just in case
+    outJSON = {}
+    jData = ujson.loads(inJSON)
+    outJSON['parentURL'] = jData['cleaned_url']
+    outJSON['links'] = []
+
+    try:
+        # d2 = parseLinksBS4(jData['raw_content'])
+        outList = parseLinksLXML(jData['raw_content'])
+        outJSON['links'] = outList
+    except:
+        #failed += 1
+        pass
+    jsonString = ujson.dumps(outJSON)
+    #return jsonString
+    return outJSON
 
 def multipleUnquote(s):
     k = 0
